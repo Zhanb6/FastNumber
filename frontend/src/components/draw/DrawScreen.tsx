@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { DrawAnimation } from "@/components/DrawAnimation";
 import { IdleView } from "./IdleView";
+import { PartnerBadge } from "./PartnerBadge";
 import { useLiveSocket } from "@/hooks/useLiveSocket";
 import { t } from "@/i18n";
 
@@ -29,6 +30,7 @@ export function DrawScreen() {
   const [cursorHidden, setCursorHidden] = useState(false);
   const [hintVisible, setHintVisible] = useState(true);
   const [tabHidden, setTabHidden] = useState(false);
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
 
   // Fullscreen on "F"
   useEffect(() => {
@@ -78,28 +80,40 @@ export function DrawScreen() {
   const showDraw =
     snapshot !== null && snapshot.state !== "IDLE" && draw !== null && winner !== null && draw.started_at !== null;
 
+  const animationKey = draw && draw.started_at !== null ? `${draw.id}:${draw.started_at}` : null;
+  // Sponsor badge appears with the winner, when the audience photographs the screen.
+  // The snapshot only changes on server events, so the live reveal is reported by
+  // the animation itself; the snapshot covers a screen that joined late or after confirm.
+  const showPartner =
+    (animationKey !== null && revealedKey === animationKey) ||
+    snapshot?.state === "WINNER" ||
+    snapshot?.state === "COMPLETED";
+
   return (
     <div
       className={`brand-surface fixed inset-0 select-none overflow-hidden ${cursorHidden ? "cursor-hidden" : ""}`}
     >
       {showDraw && draw && winner && draw.started_at !== null ? (
         <DrawAnimation
-          key={`${draw.id}:${draw.started_at}`}
+          key={animationKey ?? undefined}
           drawTitle={draw.title}
           prize={draw.prize}
           winner={{ number: winner.number, firstName: winner.first_name, lastName: winner.last_name }}
           startedAt={draw.started_at}
           serverOffsetMs={serverOffsetMs}
           durationMs={snapshot.animation_duration_ms || 8000}
+          onRevealComplete={() => setRevealedKey(animationKey)}
         />
       ) : (
         <IdleView snapshot={snapshot} paused={tabHidden} />
       )}
 
+      {showPartner && <PartnerBadge />}
+
       {/* Fullscreen hint */}
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute bottom-[2.5vh] left-[2vw] text-[1.4vh] text-brand-muted transition-opacity duration-1000 ${
+        className={`pointer-events-none absolute top-[2.5vh] left-[2vw] text-[1.4vh] text-brand-muted transition-opacity duration-1000 ${
           hintVisible ? "opacity-70" : "opacity-0"
         }`}
       >
