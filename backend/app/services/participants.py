@@ -1,5 +1,6 @@
 """Admin operations on participants, winners and dashboard stats."""
 
+import re
 import uuid
 from datetime import datetime, time
 from typing import Any
@@ -20,6 +21,7 @@ from app.models import (
 )
 from app.services import audit
 from app.services.notify import notify_participants
+from app.services.registration import normalise_phone
 from app.services.settings import get_settings
 from app.util import utcnow
 
@@ -49,6 +51,7 @@ SORTS = {
 
 
 INT32_MAX = 2**31 - 1
+PHONE_MIN_DIGITS = 4
 
 
 def as_number(value: str) -> int | None:
@@ -64,6 +67,23 @@ def as_number(value: str) -> int | None:
     return number if 0 <= number <= INT32_MAX else None
 
 
+def phone_conditions(value: str) -> list[Any]:
+    """Match a search term against stored E.164 phones.
+
+    People give their phone in whatever shape they remember it, and the desk may
+    only be told the last few digits, so match both the normalised number and a
+    digit substring.
+    """
+    conds: list[Any] = []
+    normalised = normalise_phone(value)
+    if normalised:
+        conds.append(Participant.phone == normalised)
+    digits = re.sub(r"\D", "", value)
+    if len(digits) >= PHONE_MIN_DIGITS:
+        conds.append(Participant.phone.like(f"%{digits}%"))
+    return conds
+
+
 def apply_filters(stmt: Select, *, q: str | None, status: str | None, won: bool | None) -> Select:
     if status is None or status == "":
         stmt = stmt.where(
@@ -77,6 +97,7 @@ def apply_filters(stmt: Select, *, q: str | None, status: str | None, won: bool 
         number = as_number(q)
         if number is not None:
             conds.append(Participant.number == number)
+        conds.extend(phone_conditions(q))
         stmt = stmt.where(or_(*conds))
     if won is True:
         stmt = stmt.where(HAS_WON)

@@ -74,3 +74,27 @@ async def test_search_accepts_phone_numbers_and_junk(client, admin):
     assert r.status_code == 200
     r = await admin.get("/api/admin/participants", params={"page": 10**12})
     assert r.status_code == 422
+
+
+async def test_search_by_phone(client, admin):
+    await admin.put(
+        "/api/admin/settings",
+        json={"fields": {"phone": {"enabled": True, "required": True}}},
+    )
+    p = await register(client, "Айгерим", "Ахметова", phone="+7 700 123 45 67")
+    await register(client, "Данияр", "Ермеков", phone="87019998877")
+
+    async def numbers(q: str) -> list[int]:
+        r = await admin.get("/api/admin/participants", params={"q": q})
+        assert r.status_code == 200, r.text
+        return [item["number"] for item in r.json()["items"]]
+
+    # every shape the same number can be typed in
+    for q in ("87001234567", "+77001234567", "77001234567", "7001234567", "+7 (700) 123-45-67"):
+        assert await numbers(q) == [p["number"]], q
+    # the last digits alone are enough
+    assert await numbers("4567") == [p["number"]]
+    assert await numbers("9998877") == [p["number"] + 1]
+    # a short digit string stays a participant-number search, not a phone one
+    assert await numbers("100") == []
+    assert await numbers("Ахметова") == [p["number"]]

@@ -258,7 +258,10 @@ created today in `timezone`.
 ### Participants
 
 - `GET /api/admin/participants?q=&status=&won=&page=1&page_size=50&sort=number`
-  - `q`: `ILIKE %q%` on first_name / last_name, OR exact match on `number` if `q` is an integer.
+  - `q`: `ILIKE %q%` on first_name / last_name, OR exact match on `number` if `q` is a valid
+    participant number, OR a phone match: the term normalised to E.164 (so `8700…`, `+7700…` and
+    `700…` all find the same person) and, from four digits up, a digit substring of the stored
+    phone (so the last digits alone are enough).
   - `status`: `ACTIVE | DISQUALIFIED | DELETED | all`; omitted ⇒ `ACTIVE + DISQUALIFIED`.
   - `won`: `true | false` (omitted ⇒ any).
   - `sort`: `number | -number | created_at | -created_at` (default `number`).
