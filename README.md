@@ -68,7 +68,8 @@ docker compose exec backend python -m scripts.reset --confirm
 | `START_NUMBER`, `MAX_NUMBER`, `ON_MAX_REACHED` | Numbering defaults (`continue` or `close` when `MAX_NUMBER` is reached) |
 | `NAME_MODE` | Registration name input: `full` (one ФИО field, first word = surname) or `split` (first + last name) |
 | `ALLOW_PREVIOUS_WINNERS`, `REGISTRATION_OPEN` | Draw and registration defaults |
-| `REGISTER_RATE_LIMIT_PER_MIN` | Soft per-IP limit for registrations (shared venue NAT — keep it generous) |
+| `REGISTER_RATE_LIMIT_PER_MIN` | Soft per-IP limit for registrations; a venue shares one NAT address, so keep it far above the pace of the whole hall (`0` disables) |
+| `TRUSTED_PROXY_DEPTH` | Proxies in front of the backend: `1` for this stack alone, `2` behind an external reverse proxy. Wrong value = wrong client IP in the audit log and in rate limiting |
 | `SEED_DEMO` | `true` → seed demo data on first start |
 | `HTTP_PORT` | Host port for nginx |
 | `BACKUP_INTERVAL_SECONDS`, `BACKUP_KEEP` | Backup period (default 15 min) and how many dumps to keep |
@@ -118,6 +119,8 @@ Fonts are self-hosted (Inter, Cyrillic + Kazakh letters). No CDN.
 3. The winner is selected and stored on the server **before** the screen starts animating (8 s: title → fast numbers → slow-down → reveal + confetti).
 4. Admin sees the winner immediately; the "Подтвердить победителя" / "Повторить розыгрыш" buttons unlock after the 8 s animation.
 5. Winner is present → **Подтвердить победителя**. Winner is absent → **Повторить розыгрыш** (optional reason). The rejected participant is kept in history and excluded from this round's redraw.
+   Started the wrong draw → **Отменить розыгрыш**: no winner is declared, the result is rejected, the
+   screen returns to idle and other draws can start again. The draw stays `CANCELLED` for good.
 6. When the stage is done with the winner card → **Вернуть экран в режим ожидания**.
 
 Rules enforced by the backend:
@@ -137,6 +140,7 @@ docker compose exec backend python -m scripts.draw_cli list
 docker compose exec backend python -m scripts.draw_cli start <draw_id|position>
 docker compose exec backend python -m scripts.draw_cli redraw <draw_id|position> --reason "winner absent"
 docker compose exec backend python -m scripts.draw_cli confirm <draw_id|position>
+docker compose exec backend python -m scripts.draw_cli cancel <draw_id|position> --reason "wrong draw"
 docker compose exec backend python -m scripts.draw_cli idle
 ```
 

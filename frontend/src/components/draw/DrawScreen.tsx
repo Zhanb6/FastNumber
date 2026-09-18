@@ -88,7 +88,6 @@ export function DrawScreen() {
           drawTitle={draw.title}
           prize={draw.prize}
           winner={{ number: winner.number, firstName: winner.first_name, lastName: winner.last_name }}
-          numberPool={snapshot.number_pool ?? []}
           startedAt={draw.started_at}
           serverOffsetMs={serverOffsetMs}
           durationMs={snapshot.animation_duration_ms || 8000}

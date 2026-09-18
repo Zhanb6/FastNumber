@@ -257,3 +257,53 @@ async def test_pending_participant_cannot_be_deleted_or_disqualified(client, adm
         "PARTICIPANT_REGISTERED", "PARTICIPANT_DISQUALIFIED", "PARTICIPANT_RESTORED",
         "PARTICIPANT_DELETED", "WINNER_SELECTED", "WINNER_CONFIRMED",
     } <= actions  # fmt: skip
+
+
+async def test_cancel_pending_draw_frees_the_stage(client, admin):
+    """A started draw must be escapable without declaring a winner."""
+    for name in ("Айгерим", "Данияр", "Асель"):
+        await register(client, name, "Тестов")
+    first = await create_draw(admin, title="Ошибочный", prize="Приз")
+    second = await create_draw(admin, title="Настоящий", prize="Приз")
+
+    r = await admin.post(f"/api/admin/draws/{first['id']}/start")
+    assert r.status_code == 200
+    # while it is pending, no other draw may start
+    r = await admin.post(f"/api/admin/draws/{second['id']}/start")
+    assert r.status_code == 409 and r.json()["error"]["code"] == "ANOTHER_DRAW_ACTIVE"
+
+    r = await admin.post(f"/api/admin/draws/{first['id']}/cancel", json={"reason": "не тот раунд"})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["status"] == "CANCELLED"
+    assert body["winner"] is None and body["current_result"] is None
+
+    detail = (await admin.get(f"/api/admin/draws/{first['id']}")).json()
+    assert [x["status"] for x in detail["results"]] == ["REJECTED"]
+    assert detail["results"][0]["reason"] == "не тот раунд"
+
+    # the screen is released and the next draw runs normally
+    live = (await client.get("/api/live/current")).json()
+    assert live["state"] == "IDLE" and live["draw"] is None
+    r = await admin.post(f"/api/admin/draws/{second['id']}/start")
+    assert r.status_code == 200
+
+    entries = await audit_actions(admin, action="DRAW_CANCELLED")
+    assert entries[0]["metadata"]["from_status"] == "PENDING_CONFIRMATION"
+    assert entries[0]["metadata"]["rejected_number"] is not None
+
+
+async def test_cancel_without_reason_and_completed_stays_immutable(client, admin):
+    await register(client, "Иван", "Иванов")
+    draw = await create_draw(admin)
+    await admin.post(f"/api/admin/draws/{draw['id']}/start")
+    r = await admin.post(f"/api/admin/draws/{draw['id']}/cancel")
+    assert r.status_code == 200
+    detail = (await admin.get(f"/api/admin/draws/{draw['id']}")).json()
+    assert detail["results"][0]["reason"] == "Розыгрыш отменён"
+
+    other = await create_draw(admin, title="Второй")
+    await admin.post(f"/api/admin/draws/{other['id']}/start")
+    await admin.post(f"/api/admin/draws/{other['id']}/confirm")
+    r = await admin.post(f"/api/admin/draws/{other['id']}/cancel")
+    assert r.status_code == 409 and r.json()["error"]["code"] == "INVALID_STATUS"

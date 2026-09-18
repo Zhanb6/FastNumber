@@ -248,22 +248,58 @@ async def delete_draw(
     await session.commit()
 
 
+CANCELLABLE = (DrawStatus.DRAFT, DrawStatus.PENDING_CONFIRMATION)
+
+
 async def cancel_draw(
-    session: AsyncSession, draw_id: uuid.UUID, *, admin_login: str | None, ip: str | None
+    session: AsyncSession,
+    draw_id: uuid.UUID,
+    *,
+    reason: str | None = None,
+    admin_login: str | None,
+    ip: str | None,
 ) -> Draw:
+    """Cancel a draw, including one already waiting for confirmation.
+
+    A started draw blocks every other draw until it leaves
+    PENDING_CONFIRMATION, so the operator needs a way out that does not declare
+    a winner: the selected result is rejected and the screen returns to IDLE.
+    """
     draw = await lock_draw(session, draw_id)
-    if draw.status != DrawStatus.DRAFT:
+    live = await lock_live(session)
+    if draw.status not in CANCELLABLE:
         raise invalid_status(draw)
+    from_status = draw.status
+    reason = (reason or "").strip() or None
+
+    rejected: DrawResult | None = None
+    if from_status == DrawStatus.PENDING_CONFIRMATION:
+        rejected = await get_selected_result(session, draw.id)
+        if rejected is not None:
+            rejected.status = DrawResultStatus.REJECTED
+            rejected.reason = reason or "Розыгрыш отменён"
+
     draw.status = DrawStatus.CANCELLED
+    if live.draw_id == draw.id:
+        live.state = LiveStateValue.IDLE
+        live.draw_id = None
+        live.updated_at = utcnow()
     audit.log(
         session,
         "DRAW_CANCELLED",
         entity_type="draw",
         entity_id=draw.id,
+        participant_id=rejected.participant_id if rejected else None,
         draw_id=draw.id,
         admin_login=admin_login,
         ip=ip,
+        metadata={
+            "from_status": from_status.value,
+            "reason": reason,
+            "rejected_number": rejected.participant.number if rejected else None,
+        },
     )
+    await session.flush()
     await notify_live(session, "draw_cancelled")
     await session.commit()
     return await get_draw(session, draw.id)

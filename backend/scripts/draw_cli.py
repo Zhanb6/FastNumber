@@ -4,6 +4,7 @@
     python -m scripts.draw_cli start <draw>
     python -m scripts.draw_cli redraw <draw> --reason "..."
     python -m scripts.draw_cli confirm <draw>
+    python -m scripts.draw_cli cancel <draw> [--reason "..."]
     python -m scripts.draw_cli idle
 
 <draw> is a UUID, a position number (e.g. 1) or a title prefix.
@@ -90,6 +91,15 @@ async def cmd_confirm(session: AsyncSession, args) -> None:
     print_draw(draw)
 
 
+async def cmd_cancel(session: AsyncSession, args) -> None:
+    draw = await resolve_draw(session, args.draw)
+    draw = await draw_service.cancel_draw(
+        session, draw.id, reason=args.reason, admin_login=CLI_LOGIN, ip=None
+    )
+    print("Draw cancelled:")
+    print_draw(draw)
+
+
 async def cmd_idle(session: AsyncSession, _args) -> None:
     await draw_service.set_idle(session, admin_login=CLI_LOGIN, ip=None)
     print("Live screen set to IDLE")
@@ -109,6 +119,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("confirm", help="confirm the selected winner")
     p.add_argument("draw")
     p.set_defaults(func=cmd_confirm)
+    p = sub.add_parser("cancel", help="cancel a draw (also one pending confirmation)")
+    p.add_argument("draw")
+    p.add_argument("--reason", default=None)
+    p.set_defaults(func=cmd_cancel)
     sub.add_parser("idle", help="return the live screen to IDLE").set_defaults(func=cmd_idle)
     return parser
 

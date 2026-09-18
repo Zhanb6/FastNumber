@@ -48,6 +48,22 @@ SORTS = {
 }
 
 
+INT32_MAX = 2**31 - 1
+
+
+def as_number(value: str) -> int | None:
+    """Parse a search term as a participant number, or None if it is not one.
+
+    `str.isdigit()` is true for characters like "²" that `int()` rejects, and a
+    phone number does not fit the INTEGER column — both used to raise a 500.
+    """
+    try:
+        number = int(value)
+    except ValueError:
+        return None
+    return number if 0 <= number <= INT32_MAX else None
+
+
 def apply_filters(stmt: Select, *, q: str | None, status: str | None, won: bool | None) -> Select:
     if status is None or status == "":
         stmt = stmt.where(
@@ -58,8 +74,9 @@ def apply_filters(stmt: Select, *, q: str | None, status: str | None, won: bool 
     if q:
         q = q.strip()
         conds = [Participant.first_name.ilike(f"%{q}%"), Participant.last_name.ilike(f"%{q}%")]
-        if q.isdigit():
-            conds.append(Participant.number == int(q))
+        number = as_number(q)
+        if number is not None:
+            conds.append(Participant.number == number)
         stmt = stmt.where(or_(*conds))
     if won is True:
         stmt = stmt.where(HAS_WON)

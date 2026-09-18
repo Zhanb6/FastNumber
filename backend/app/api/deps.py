@@ -14,11 +14,19 @@ MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 
 
 def client_ip(request: Request) -> str | None:
+    """Real client IP, counting X-Forwarded-For from the right.
+
+    Every proxy appends the peer it saw, so the last entry is the closest proxy
+    and the client is `TRUSTED_PROXY_DEPTH` entries from the end. Entries to the
+    left of that are supplied by the client and must never be trusted: taking
+    the first one lets anyone forge the IP used for rate limiting and audit.
+    """
+    depth = max(1, get_config().trusted_proxy_depth)
     xff = request.headers.get("x-forwarded-for")
     if xff:
-        first = xff.split(",")[0].strip()
-        if first:
-            return first
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            return parts[-min(len(parts), depth)]
     real = request.headers.get("x-real-ip")
     if real:
         return real.strip()

@@ -143,7 +143,7 @@ async def participants_list(
     q: str | None = Query(default=None, max_length=100),
     status: str | None = None,
     won: bool | None = None,
-    page: int = Query(default=1, ge=1),
+    page: int = Query(default=1, ge=1, le=1_000_000),
     page_size: int = Query(default=50, ge=1, le=200),
     sort: str = Query(default="number"),
 ) -> dict:
@@ -286,11 +286,16 @@ async def draws_delete(
 async def draws_cancel(
     draw_id: uuid.UUID,
     request: Request,
+    body: ReasonIn | None = None,
     admin: str = Depends(require_admin),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     draw = await draw_service.cancel_draw(
-        session, draw_id, admin_login=admin, ip=client_ip(request)
+        session,
+        draw_id,
+        reason=body.reason if body else None,
+        admin_login=admin,
+        ip=client_ip(request),
     )
     return draw_view(draw)
 
@@ -384,7 +389,7 @@ async def audit_list(
     action: str | None = Query(default=None, max_length=50),
     draw_id: uuid.UUID | None = None,
     participant_id: uuid.UUID | None = None,
-    page: int = Query(default=1, ge=1),
+    page: int = Query(default=1, ge=1, le=1_000_000),
     page_size: int = Query(default=50, ge=1, le=200),
 ) -> dict:
     base = _audit_query(action, draw_id, participant_id)

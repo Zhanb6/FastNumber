@@ -262,7 +262,9 @@ created today in `timezone`.
   - `status`: `ACTIVE | DISQUALIFIED | DELETED | all`; omitted ⇒ `ACTIVE + DISQUALIFIED`.
   - `won`: `true | false` (omitted ⇒ any).
   - `sort`: `number | -number | created_at | -created_at` (default `number`).
-  - `page_size` 1..200, default 50.
+  - `page_size` 1..200, default 50; `page` 1..1000000.
+  - A `q` that is digits but not a valid participant number (a phone, an out-of-range integer)
+    matches names only, it is not an error.
   - → Paginated list of `ParticipantAdmin`.
 - `GET /api/admin/participants/{id}` → `ParticipantAdmin` + `"results": [DrawResultView + "draw": {"id","title","prize"}]`.
 - `POST /api/admin/participants/{id}/disqualify` body `{ "reason?" }` → `200 ParticipantAdmin`.
@@ -280,7 +282,10 @@ created today in `timezone`.
 - `PATCH /api/admin/draws/{id}` (same fields as create, all optional) → `200 DrawView`.
   Error `409 DRAW_NOT_EDITABLE` unless status `DRAFT`.
 - `DELETE /api/admin/draws/{id}` → `204`. Error `409 DRAW_NOT_DELETABLE` (not DRAFT or has results).
-- `POST /api/admin/draws/{id}/cancel` → `200 DrawView`. `409 INVALID_STATUS` unless DRAFT.
+- `POST /api/admin/draws/{id}/cancel` body `{ "reason?" }` → `200 DrawView`.
+  Allowed from `DRAFT` and from `PENDING_CONFIRMATION`; in the latter case the `SELECTED` result
+  becomes `REJECTED` (with `reason`, default `"Розыгрыш отменён"`) and the live screen returns to
+  `IDLE`. `409 INVALID_STATUS` for `COMPLETED`/`CANCELLED`.
 - `POST /api/admin/draws/{id}/start` → `200 DrawDetail`.
   Errors: `409 INVALID_STATUS` (not DRAFT; `details.status` = current status),
   `409 ANOTHER_DRAW_ACTIVE` (`details.draw_id`), `409 NO_ELIGIBLE_PARTICIPANTS`.

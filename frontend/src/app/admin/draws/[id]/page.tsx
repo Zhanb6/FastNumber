@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { confirmDraw, getDraw, isApiError, liveIdle, redrawDraw, startDraw } from "@/lib/api";
+import { cancelDraw, confirmDraw, getDraw, isApiError, liveIdle, redrawDraw, startDraw } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import type { DrawDetail } from "@/lib/types";
 import { formatDateTime, formatInt, fullName } from "@/lib/format";
@@ -13,7 +13,7 @@ import { t, tDynamic } from "@/i18n";
 
 const DEFAULT_ANIMATION_MS = 8000;
 
-type Modal = { kind: "start"; eligible: number } | { kind: "redraw" } | null;
+type Modal = { kind: "start"; eligible: number } | { kind: "redraw" } | { kind: "cancel" } | null;
 
 export default function DrawDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +23,7 @@ export default function DrawDetailPage() {
   const [draw, setDraw] = useState<DrawDetail | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [modal, setModal] = useState<Modal>(null);
-  const [busy, setBusy] = useState<"start" | "confirm" | "redraw" | "idle" | "refresh" | null>(null);
+  const [busy, setBusy] = useState<"start" | "confirm" | "redraw" | "cancel" | "idle" | "refresh" | null>(null);
   const [reason, setReason] = useState("");
   const [remainingS, setRemainingS] = useState(0);
 
@@ -138,6 +138,21 @@ export default function DrawDetailPage() {
     }
   };
 
+  const cancel = async () => {
+    setBusy("cancel");
+    try {
+      await cancelDraw(id, reason.trim() || undefined);
+      setDraw(await getDraw(id));
+      setModal(null);
+      setReason("");
+      toast.success(t("admin.draw.cancelled_toast"));
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const idle = async () => {
     setBusy("idle");
     try {
@@ -228,6 +243,9 @@ export default function DrawDetailPage() {
               <Button size="lg" variant="secondary" onClick={() => setModal({ kind: "redraw" })} disabled={locked || busy !== null}>
                 {t("admin.draw.redraw")}
               </Button>
+              <Button size="lg" variant="danger" onClick={() => setModal({ kind: "cancel" })} disabled={busy !== null}>
+                {t("admin.draw.cancel")}
+              </Button>
             </div>
             {locked && (
               <p className="mt-3 text-sm text-slate-500" aria-live="polite">
@@ -307,6 +325,30 @@ export default function DrawDetailPage() {
         onConfirm={start}
         onClose={() => busy !== "start" && setModal(null)}
       />
+
+      <ConfirmModal
+        open={modal?.kind === "cancel"}
+        title={t("admin.draw.cancel_title")}
+        text={t("admin.draw.cancel_text", { number: pendingResult?.participant.number ?? "" })}
+        confirmLabel={t("admin.draw.cancel")}
+        danger
+        loading={busy === "cancel"}
+        onConfirm={cancel}
+        onClose={() => {
+          if (busy === "cancel") return;
+          setModal(null);
+          setReason("");
+        }}
+      >
+        <Input
+          className="mt-4"
+          label={t("common.reason_optional")}
+          placeholder={t("admin.draw.cancel_reason_placeholder")}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={500}
+        />
+      </ConfirmModal>
 
       <ConfirmModal
         open={modal?.kind === "redraw"}

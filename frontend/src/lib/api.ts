@@ -165,7 +165,8 @@ export const getDraw = (id: string) => get<DrawDetail>(`/api/admin/draws/${id}`)
 export const updateDraw = (id: string, body: DrawUpdateBody) =>
   patch<DrawView>(`/api/admin/draws/${id}`, body);
 export const deleteDraw = (id: string) => del<void>(`/api/admin/draws/${id}`);
-export const cancelDraw = (id: string) => post<DrawView>(`/api/admin/draws/${id}/cancel`);
+export const cancelDraw = (id: string, reason?: string) =>
+  post<DrawView>(`/api/admin/draws/${id}/cancel`, reason ? { reason } : {});
 export const startDraw = (id: string) => post<DrawDetail>(`/api/admin/draws/${id}/start`);
 export const redrawDraw = (id: string, reason?: string) =>
   post<DrawDetail>(`/api/admin/draws/${id}/redraw`, reason ? { reason } : {});

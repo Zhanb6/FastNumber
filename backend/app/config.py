@@ -31,7 +31,8 @@ class AppConfig(BaseSettings):
     registration_open: bool = True
     animation_duration_ms: int = 8000
 
-    register_rate_limit_per_min: int = 30
+    register_rate_limit_per_min: int = 600
+    trusted_proxy_depth: int = 1
     seed_demo: bool = False
 
     @field_validator("cookie_secure", "seed_demo", "allow_previous_winners", mode="before")

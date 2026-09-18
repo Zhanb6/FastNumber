@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Confetti } from "./Confetti";
+import { NumberReels } from "./draw/NumberReels";
 import { t } from "@/i18n";
 
 export interface DrawAnimationProps {
   drawTitle: string;
   prize: string;
   winner: { number: number; firstName: string; lastName: string };
-  numberPool: number[]; // participant numbers used for the visual shuffle only
   startedAt: number; // server start time, ms
   serverOffsetMs: number; // client clock correction
   durationMs?: number; // default 8000
@@ -17,15 +17,6 @@ export interface DrawAnimationProps {
 }
 
 type Phase = "countdown" | "drawing" | "hold" | "winner";
-
-interface Flip {
-  at: number; // ms since startedAt
-  value: number;
-}
-
-const FAST_INTERVAL_MS = 40; // ≈25 flips/s
-const SLOWDOWN_FLIPS = 12;
-const SLOWDOWN_GROWTH = 1.25;
 
 /** Phase boundaries as fractions of the total duration (spec §10.1 for 8000 ms). */
 function phaseAt(elapsed: number, d: number): Phase {
@@ -35,67 +26,16 @@ function phaseAt(elapsed: number, d: number): Phase {
   return "winner";
 }
 
-/**
- * Deterministic flip schedule relative to `startedAt`:
- * fast random numbers from t1 to t2, then 12 flips with geometrically growing
- * intervals (ease-out) ending exactly on the winner at t3.
- */
-function buildSchedule(pool: number[], winner: number, d: number): Flip[] {
-  const t1 = d / 8;
-  const t2 = (d * 5) / 8;
-  const t3 = (d * 7) / 8;
-  const source = pool.length > 0 ? pool : [winner];
-  const pick = (prev: number): number => {
-    if (source.length < 2) return source[0];
-    let v = prev;
-    for (let i = 0; i < 4 && v === prev; i++) v = source[Math.floor(Math.random() * source.length)];
-    return v;
-  };
-
-  const flips: Flip[] = [];
-  let prev = winner;
-  for (let at = t1; at < t2; at += FAST_INTERVAL_MS) {
-    prev = pick(prev);
-    flips.push({ at, value: prev });
-  }
-
-  // Slowdown: intervals 40ms * 1.25^k, normalised to fit exactly into [t2, t3].
-  const raw: number[] = [];
-  let sum = 0;
-  for (let k = 0; k < SLOWDOWN_FLIPS; k++) {
-    const iv = FAST_INTERVAL_MS * SLOWDOWN_GROWTH ** k;
-    raw.push(iv);
-    sum += iv;
-  }
-  const scale = (t3 - t2) / sum;
-  let at = t2;
-  for (let k = 0; k < SLOWDOWN_FLIPS; k++) {
-    at += raw[k] * scale;
-    const last = k === SLOWDOWN_FLIPS - 1;
-    if (last) {
-      flips.push({ at: t3, value: winner });
-    } else {
-      prev = pick(prev);
-      if (prev === winner && k >= SLOWDOWN_FLIPS - 4) prev = pick(winner);
-      flips.push({ at, value: prev });
-    }
-  }
-  return flips;
-}
-
 export function DrawAnimation({
   drawTitle,
   prize,
   winner,
-  numberPool,
   startedAt,
   serverOffsetMs,
   durationMs = 8000,
   onRevealComplete,
 }: DrawAnimationProps) {
   const reducedMotion = useReducedMotion() ?? false;
-  const reducedRef = useRef(reducedMotion);
-  reducedRef.current = reducedMotion;
   const offsetRef = useRef(serverOffsetMs);
   offsetRef.current = serverOffsetMs;
   const revealRef = useRef(onRevealComplete);
@@ -108,26 +48,8 @@ export function DrawAnimation({
   const [confetti, setConfetti] = useState(false);
   const phaseRef = useRef(phase);
 
-  const numberRef = useRef<HTMLSpanElement>(null);
-  // Random schedule, generated once per mount (component is keyed by draw id + startedAt).
-  const [schedule] = useState<Flip[]>(() =>
-    reducedMotion ? [] : buildSchedule(numberPool, winner.number, durationMs),
-  );
-
   useEffect(() => {
     let raf = 0;
-    let idx = -1;
-    let shown: number | null = null;
-
-    // The span mounts only after COUNTDOWN, so resolve the ref on every write.
-    const show = (value: number) => {
-      const el = numberRef.current;
-      if (el && (value !== shown || el.textContent === "")) {
-        el.textContent = String(value);
-        shown = value;
-      }
-    };
-
     const tick = () => {
       const elapsed = Date.now() + offsetRef.current - startedAt;
       const next = phaseAt(elapsed, durationMs);
@@ -135,21 +57,11 @@ export function DrawAnimation({
         phaseRef.current = next;
         setPhase(next);
       }
-      if (next === "drawing") {
-        if (schedule.length === 0 || reducedRef.current) {
-          show(winner.number);
-        } else {
-          while (idx + 1 < schedule.length && schedule[idx + 1].at <= elapsed) idx++;
-          show(idx >= 0 ? schedule[idx].value : winner.number);
-        }
-      } else if (next === "hold" || next === "winner") {
-        show(winner.number);
-      }
       if (next !== "winner") raf = requestAnimationFrame(tick);
     };
     tick();
     return () => cancelAnimationFrame(raf);
-  }, [startedAt, durationMs, schedule, winner.number]);
+  }, [startedAt, durationMs]);
 
   useEffect(() => {
     if (phase !== "winner") return;
@@ -202,41 +114,48 @@ export function DrawAnimation({
           </motion.p>
 
           <motion.div
-            className="flex items-baseline justify-center gap-[1.5vw]"
+            className="relative flex items-center justify-center"
             animate={
               phase === "hold" && !reducedMotion
                 ? { scale: [1, 1.035, 1] }
-                : isWinner
-                  ? { scale: 1 }
+                : isWinner && !instant
+                  ? { scale: [1, 1.06, 1] }
                   : { scale: 1 }
             }
             transition={
               phase === "hold" && !reducedMotion
                 ? { duration: 0.9, repeat: Infinity, ease: "easeInOut" }
-                : { duration: fast }
+                : { duration: reducedMotion ? 0.2 : 0.8, ease: "easeOut" }
             }
           >
+            {/* Absolute, so the digits stay dead centre in every phase. */}
             <motion.span
-              className="font-semibold leading-none text-brand-muted"
+              className="absolute right-full mr-[1.5vw] font-semibold leading-none text-brand-muted"
               style={{ fontSize: "clamp(2rem, 12vh, 18rem)" }}
               initial={instant ? false : { opacity: 0 }}
               animate={{ opacity: isWinner ? 1 : 0 }}
               transition={{ duration: fast }}
-              aria-hidden={!isWinner}
+              aria-hidden="true"
             >
               {t("draw.number_prefix")}
             </motion.span>
-            <motion.span
-              ref={numberRef}
-              className="numeric font-bold leading-none text-brand-text"
+            <NumberReels
+              target={winner.number}
+              startedAt={startedAt}
+              offsetRef={offsetRef}
+              durationMs={durationMs}
+              frozen={instant || reducedMotion || phase === "hold" || isWinner}
+              className="font-bold text-brand-text"
               style={{
-                fontSize: "44vh",
-                textShadow: isWinner ? "0 0 6vh color-mix(in srgb, var(--brand-accent) 45%, transparent)" : "none",
+                fontSize: "40vh",
+                textShadow: isWinner
+                  ? "0 0 6vh color-mix(in srgb, var(--brand-accent) 45%, transparent)"
+                  : "none",
               }}
-              animate={isWinner && !instant ? { scale: [1, 1.06, 1] } : { scale: 1 }}
-              transition={{ duration: reducedMotion ? 0.2 : 0.8, ease: "easeOut" }}
-              aria-live={isWinner ? "polite" : "off"}
             />
+            <span className="sr-only" aria-live="polite">
+              {isWinner ? `${t("draw.number_prefix")} ${winner.number}` : ""}
+            </span>
           </motion.div>
 
           <motion.p

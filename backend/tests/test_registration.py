@@ -180,7 +180,8 @@ async def test_registration_audit_and_ip(client, admin):
     entries = await audit_actions(admin, action="PARTICIPANT_REGISTERED")
     assert len(entries) == 1
     assert entries[0]["participant_id"] == r.json()["id"]
-    assert entries[0]["ip"] == "203.0.113.5"
+    # with TRUSTED_PROXY_DEPTH=1 the last entry is the one our own nginx appended
+    assert entries[0]["ip"] == "10.0.0.1"
     assert entries[0]["admin_login"] is None
     assert entries[0]["metadata"]["number"] == 1000
 
@@ -215,3 +216,15 @@ async def test_full_name_mode(client, admin):
     assert set(r.json()["error"]["details"]["fields"]) == {"first_name", "last_name"}
     r = await admin.put("/api/admin/settings", json={"name_mode": "bogus"})
     assert r.status_code == 422
+
+
+async def test_client_ip_ignores_client_supplied_forwarded_for(client, admin):
+    """A forged left-hand X-Forwarded-For entry must not become the audit IP."""
+    r = await client.post(
+        "/api/register",
+        json={"full_name": "Подмена Айдар"},
+        headers={"X-Forwarded-For": "1.2.3.4, 198.51.100.7"},
+    )
+    assert r.status_code == 201
+    entries = await audit_actions(admin, action="PARTICIPANT_REGISTERED")
+    assert entries[0]["ip"] == "198.51.100.7"

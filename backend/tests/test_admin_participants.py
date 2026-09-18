@@ -60,3 +60,17 @@ async def test_stats(client, admin):
     assert body["public_base_url"] == "http://localhost"
     assert body["live_state"] == "COMPLETED"
     assert body["event_name"] == "Kazakhstan Travel Forum 2026"
+
+
+async def test_search_accepts_phone_numbers_and_junk(client, admin):
+    """A number that does not fit INTEGER (a phone) used to raise a 500."""
+    await register(client, "Иван", "Иванов")
+    for q in ("87001234567", "99999999999999999999", "\u00b2", "-5", "1e3", "100 "):
+        r = await admin.get("/api/admin/participants", params={"q": q})
+        assert r.status_code == 200, (q, r.text)
+    r = await admin.get("/api/admin/participants", params={"q": "87001234567"})
+    assert r.json()["items"] == []
+    r = await admin.get("/api/admin/export/participants", params={"q": "87001234567"})
+    assert r.status_code == 200
+    r = await admin.get("/api/admin/participants", params={"page": 10**12})
+    assert r.status_code == 422

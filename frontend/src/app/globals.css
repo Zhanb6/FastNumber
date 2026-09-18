@@ -94,3 +94,46 @@ body {
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.03em;
 }
+
+/* ---- digit reels (draw animation) ---- */
+.reel-row {
+  display: inline-flex;
+  align-items: stretch;
+}
+.reel-window {
+  display: block;
+  height: 1.1em;
+  overflow: hidden;
+  /* Digits fade in and out at the window edges; the stopped digit stays fully opaque. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%);
+}
+/* Stopped reels: no clipping, so the winner glow spreads past the window. */
+.reel-window--open {
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.reel-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.reel-strip {
+  display: block;
+  will-change: transform, filter;
+}
+.reel-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.1em;
+  letter-spacing: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reel-window {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
