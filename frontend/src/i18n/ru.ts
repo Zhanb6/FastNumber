@@ -36,7 +36,7 @@ export const ru = {
   "register.form_subtitle": "Заполните форму и получите свой номер для розыгрыша",
   "partner.label": "Технологический партнёр форума",
   "partner.services": "Цифровые продукты · AI · Автоматизация",
-  "partner.credit": "Разработка системы регистрации и розыгрыша — ZIZ INC.",
+  "partner.credit": "Разработка системы регистрации и розыгрыша: ZIZ INC.",
   "partner.motto": "Ideas\nTechnology\nPeople\nFor a brighter Kazakhstan",
   "register.full_name": "ФИО",
   "register.full_name_placeholder": "Фамилия Имя Отчество",
