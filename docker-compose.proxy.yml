@@ -1,0 +1,24 @@
+# Production override: no published port, reachable only from the reverse proxy.
+#
+# The stack is put on the same docker network as the existing reverse proxy
+# (Nginx Proxy Manager) and is addressed by the alias `fastnumber`, so nothing
+# is exposed on the host and all traffic must go through HTTPS on the proxy.
+#
+# Enable it by adding this line to .env (docker compose reads it from there):
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml
+#   PROXY_NETWORK=<the proxy's docker network>
+#
+# Then point the proxy host at   http://fastnumber:80
+services:
+  nginx:
+    ports: !reset []
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - fastnumber
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

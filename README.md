@@ -188,7 +188,26 @@ docker compose start backend
 
 ---
 
-## 7. HTTPS
+## 7. HTTPS and exposure
+
+By default the stack publishes nginx on `HTTP_PORT` of the host, which is fine for a laptop or a
+machine behind a firewall. On a public server that port is reachable from the internet **without
+TLS**, bypassing whatever HTTPS proxy sits in front. Use `docker-compose.proxy.yml` there: it drops
+the published port entirely and attaches nginx to the reverse proxy's own docker network under the
+alias `fastnumber`.
+
+Add to `.env` on that server:
+
+```dotenv
+COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml
+PROXY_NETWORK=<docker network the reverse proxy is on>
+```
+
+Then point the proxy host at `http://fastnumber:80` (Nginx Proxy Manager: Forward Hostname
+`fastnumber`, Forward Port `80`, Websockets Support on). Verify from outside that the old
+`http://<server-ip>:<HTTP_PORT>/` no longer answers.
+
+### TLS
 
 nginx in this repo listens on plain HTTP (port `HTTP_PORT`). For HTTPS put an external reverse proxy
 (Caddy, Traefik, Nginx Proxy Manager, hosting-provided TLS) in front of it and point it to
