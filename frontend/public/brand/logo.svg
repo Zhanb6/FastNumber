@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" role="img" aria-label="Kazakhstan Travel Forum">
+  <circle cx="40" cy="40" r="30" fill="none" stroke="#F8FAFC" stroke-width="3.5"/>
+  <path d="M40 12 L48.5 40 L40 68 L31.5 40 Z" fill="#5EEAD4"/>
+  <path d="M12 40 L40 31.5 L68 40 L40 48.5 Z" fill="#7DD3FC" opacity="0.9"/>
+  <circle cx="40" cy="40" r="4" fill="#F8FAFC"/>
+</svg>

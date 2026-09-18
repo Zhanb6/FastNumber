@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-bg2: var(--brand-bg2);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent2: var(--brand-accent2);
+  --color-brand-accent3: var(--brand-accent3);
+  --color-brand-text: var(--brand-text);
+  --color-brand-muted: var(--brand-muted);
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* ---- dark brand surface (registration + live screen) ---- */
+.brand-surface {
+  background-color: var(--brand-bg);
+  background-image:
+    radial-gradient(60% 50% at 20% 0%, color-mix(in srgb, var(--brand-accent2) 22%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 90% 100%, color-mix(in srgb, var(--brand-accent3) 18%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--brand-bg2), var(--brand-bg));
+  color: var(--brand-text);
+}
+
+/* ---- live screen ambient animation (IDLE only; GPU-friendly transforms) ---- */
+.ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ambient::before,
+.ambient::after {
+  content: "";
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  will-change: transform;
+  animation: ambient-drift 26s ease-in-out infinite alternate;
+}
+.ambient::before {
+  left: -20vmax;
+  top: -25vmax;
+  background: radial-gradient(circle, var(--brand-accent2) 0%, transparent 65%);
+}
+.ambient::after {
+  right: -22vmax;
+  bottom: -28vmax;
+  background: radial-gradient(circle, var(--brand-accent3) 0%, transparent 65%);
+  animation-duration: 34s;
+  animation-delay: -12s;
+}
+.ambient--paused::before,
+.ambient--paused::after {
+  animation-play-state: paused;
+}
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(12vmax, 8vmax, 0) scale(1.15);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient::before,
+  .ambient::after {
+    animation: none;
+  }
+}
+
+.cursor-hidden,
+.cursor-hidden * {
+  cursor: none !important;
+}
+
+/* Number glyphs: tabular, no ligatures, tight tracking */
+.numeric {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.03em;
+}
