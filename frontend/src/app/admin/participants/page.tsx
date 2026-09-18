@@ -5,6 +5,7 @@ import {
   deleteParticipant,
   disqualifyParticipant,
   exportParticipantsUrl,
+  getPublicConfig,
   listParticipants,
   restoreParticipant,
 } from "@/lib/api";
@@ -46,6 +47,15 @@ export default function ParticipantsPage() {
   const [action, setAction] = useState<PendingAction>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
+
+  // The phone column only makes sense when the event collects phones.
+  useEffect(() => {
+    getPublicConfig().then(
+      (c) => setShowPhone(c.fields.phone.enabled),
+      () => setShowPhone(false),
+    );
+  }, []);
 
   // Debounced server-side search
   useEffect(() => {
@@ -108,7 +118,7 @@ export default function ParticipantsPage() {
     setReason("");
   };
 
-  const cols = 7;
+  const cols = showPhone ? 8 : 7;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -181,6 +191,7 @@ export default function ParticipantsPage() {
               <Th>{t("admin.participants.col.number")}</Th>
               <Th>{t("admin.participants.col.first_name")}</Th>
               <Th>{t("admin.participants.col.last_name")}</Th>
+              {showPhone && <Th>{t("admin.participants.col.phone")}</Th>}
               <Th>{t("admin.participants.col.created_at")}</Th>
               <Th>{t("admin.participants.col.status")}</Th>
               <Th>{t("admin.participants.col.won")}</Th>
@@ -195,6 +206,7 @@ export default function ParticipantsPage() {
                 <Td className="numeric font-semibold">{p.number}</Td>
                 <Td>{p.first_name}</Td>
                 <Td>{p.last_name}</Td>
+                {showPhone && <Td className="numeric whitespace-nowrap text-slate-600">{p.phone ?? t("common.dash")}</Td>}
                 <Td className="text-slate-600">{formatDateTime(p.created_at)}</Td>
                 <Td>
                   <div className="flex flex-col gap-1">

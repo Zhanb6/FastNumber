@@ -156,6 +156,7 @@ export const ru = {
   "admin.participants.col.number": "№",
   "admin.participants.col.first_name": "Имя",
   "admin.participants.col.last_name": "Фамилия",
+  "admin.participants.col.phone": "Телефон",
   "admin.participants.col.created_at": "Дата регистрации",
   "admin.participants.col.status": "Статус",
   "admin.participants.col.won": "Выигрывал",
