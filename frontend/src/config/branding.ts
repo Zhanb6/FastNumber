@@ -22,6 +22,14 @@ export const branding = {
     text: "#F8FAFC",
     muted: "#A3B1C6",
   },
+  /** Sponsor credit under the registration page. */
+  partner: {
+    name: "ZIZ INC.",
+    site: "https://web.ziz.kz/",
+    siteLabel: "web.ziz.kz",
+    instagram: "https://www.instagram.com/ziz.kz/",
+    instagramLabel: "@ziz.kz",
+  },
   /** Confetti palette (premium, not gold coins). */
   confetti: ["#F8FAFC", "#5EEAD4", "#7DD3FC", "#A78BFA", "#FDE68A", "#F0ABFC"],
 } as const;

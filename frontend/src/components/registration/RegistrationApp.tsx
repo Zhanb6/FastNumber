@@ -8,6 +8,7 @@ import type { FieldsConfig, ParticipantPublic, PublicConfig } from "@/lib/types"
 import { t } from "@/i18n";
 import { BrandHeader } from "./BrandHeader";
 import { NumberScreen } from "./NumberScreen";
+import { PartnerFooter } from "./PartnerFooter";
 import { RegisterForm } from "./RegisterForm";
 
 const DEFAULT_FIELDS: FieldsConfig = {
@@ -104,6 +105,7 @@ export function RegistrationApp() {
           {screen.kind === "number" && <NumberScreen participant={screen.participant} onNotMe={handleNotMe} />}
           {screen.kind === "error" && <ErrorScreen message={screen.message} onRetry={load} onNotMe={handleNotMe} />}
         </div>
+        <PartnerFooter />
       </div>
     </main>
   );

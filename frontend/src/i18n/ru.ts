@@ -34,6 +34,10 @@ export const ru = {
   /* registration page */
   "register.form_title": "Регистрация участника",
   "register.form_subtitle": "Заполните форму и получите свой номер для розыгрыша",
+  "partner.label": "Технологический партнёр форума",
+  "partner.services": "Цифровые продукты · AI · Автоматизация",
+  "partner.credit": "Разработка системы регистрации и розыгрыша — ZIZ INC.",
+  "partner.motto": "Ideas\nTechnology\nPeople\nFor a brighter Kazakhstan",
   "register.full_name": "ФИО",
   "register.full_name_placeholder": "Фамилия Имя Отчество",
   "register.first_name": "Имя",
@@ -138,7 +142,7 @@ export const ru = {
 
   /* admin: participants */
   "admin.participants.title": "Участники",
-  "admin.participants.search_placeholder": "Имя, фамилия или номер",
+  "admin.participants.search_placeholder": "Имя, фамилия, номер или телефон",
   "admin.participants.filter_status": "Статус",
   "admin.participants.filter_status_default": "Все (кроме удалённых)",
   "admin.participants.filter_status_all": "Все, включая удалённых",
