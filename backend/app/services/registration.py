@@ -23,8 +23,9 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 @dataclass
 class RegistrationInput:
-    first_name: str
-    last_name: str
+    first_name: str | None = None
+    last_name: str | None = None
+    full_name: str | None = None
     phone: str | None = None
     email: str | None = None
     company: str | None = None
@@ -62,17 +63,51 @@ def validate_name(value: str | None) -> tuple[str | None, str | None]:
     return v, None
 
 
+def split_full_name(value: str | None) -> tuple[str | None, str | None, str | None]:
+    """Parse a single "Фамилия Имя [Отчество]" input into (first_name, last_name, error).
+
+    Local convention: the first word is the surname, the rest is the given name
+    (plus patronymic). Requires at least two words.
+    """
+    words = (value or "").split()
+    if not words:
+        return None, None, "Обязательное поле"
+    if len(words) < 2:
+        return None, None, "Введите фамилию и имя"
+    last = words[0]
+    first = " ".join(words[1:])
+    for part in (first, last):
+        _, err = validate_name(part)
+        if err:
+            return None, None, err
+    return first, last, None
+
+
 def validate_fields(data: RegistrationInput, settings: EventSettings) -> dict[str, str | None]:
     """Validate according to enabled/required field settings. Raises 422 on errors."""
     errors: dict[str, str] = {}
     out: dict[str, str | None] = {"phone": None, "email": None, "company": None}
 
-    first, err = validate_name(data.first_name)
-    if err:
-        errors["first_name"] = err
-    last, err = validate_name(data.last_name)
-    if err:
-        errors["last_name"] = err
+    if (data.full_name or "").strip() or not (data.first_name or data.last_name):
+        # single "ФИО" input (name_mode = "full"); also the fallback when nothing was sent
+        if settings.name_mode == "full" or (data.full_name or "").strip():
+            first, last, err = split_full_name(data.full_name)
+            if err:
+                errors["full_name"] = err
+        else:
+            first, err = validate_name(data.first_name)
+            if err:
+                errors["first_name"] = err
+            last, err = validate_name(data.last_name)
+            if err:
+                errors["last_name"] = err
+    else:
+        first, err = validate_name(data.first_name)
+        if err:
+            errors["first_name"] = err
+        last, err = validate_name(data.last_name)
+        if err:
+            errors["last_name"] = err
 
     f = settings.fields
     if f.phone.enabled:

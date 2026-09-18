@@ -44,6 +44,8 @@ class EventSettings(BaseModel):
     start_number: int = Field(ge=0, le=2_000_000_000)
     max_number: int = Field(ge=1, le=2_000_000_000)
     on_max_reached: str = Field(pattern=r"^(continue|close)$")
+    # "split": separate first/last name inputs; "full": one "ФИО" input
+    name_mode: str = Field(default="full", pattern=r"^(split|full)$")
     timezone: str
     fields: FieldsCfg
     animation: AnimationCfg
@@ -77,6 +79,7 @@ def env_defaults() -> dict[str, Any]:
         "start_number": cfg.start_number,
         "max_number": cfg.max_number,
         "on_max_reached": cfg.on_max_reached,
+        "name_mode": cfg.name_mode,
         "timezone": cfg.event_timezone,
         "fields": FieldsCfg().model_dump(),
         "animation": AnimationCfg(duration_ms=cfg.animation_duration_ms).model_dump(),

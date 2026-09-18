@@ -66,6 +66,7 @@ docker compose exec backend python -m scripts.reset --confirm
 | `COOKIE_SECURE` | Optional. Force the `Secure` flag on the admin cookie (default: on when `PUBLIC_BASE_URL` is https) |
 | `EVENT_NAME`, `EVENT_SLUG`, `EVENT_TIMEZONE` | Event defaults (first run only, then editable in Admin → Настройки) |
 | `START_NUMBER`, `MAX_NUMBER`, `ON_MAX_REACHED` | Numbering defaults (`continue` or `close` when `MAX_NUMBER` is reached) |
+| `NAME_MODE` | Registration name input: `full` (one ФИО field, first word = surname) or `split` (first + last name) |
 | `ALLOW_PREVIOUS_WINNERS`, `REGISTRATION_OPEN` | Draw and registration defaults |
 | `REGISTER_RATE_LIMIT_PER_MIN` | Soft per-IP limit for registrations (shared venue NAT — keep it generous) |
 | `SEED_DEMO` | `true` → seed demo data on first start |
@@ -79,6 +80,7 @@ Event defaults are copied into the `settings` table on the first start. After th
 
 - Event name, registration open/closed
 - "Исключать предыдущих победителей" (global; can be overridden per draw)
+- Name input format: one ФИО field or separate first/last name
 - Optional form fields (phone, email, company): enabled / required
 - Behaviour when `maxNumber` is reached
 - Start number — editable only until the first registration

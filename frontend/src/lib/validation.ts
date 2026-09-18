@@ -1,5 +1,5 @@
 import { t } from "@/i18n";
-import type { FieldsConfig, RegisterBody } from "./types";
+import type { FieldsConfig, NameMode, RegisterBody } from "./types";
 
 /** Cyrillic (incl. Kazakh letters), Latin, space, hyphen, apostrophe. Mirrors the backend rule. */
 const NAME_RE = /^[\p{Script=Cyrillic}\p{Script=Latin}\s'’-]+$/u;
@@ -39,7 +39,18 @@ export function validateEmail(value: string): string | null {
   return null;
 }
 
+/** Mirrors the backend: first word is the surname, the rest is the given name. */
+export function validateFullName(value: string): string | null {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return t("register.validation.required");
+  if (words.length < 2) return t("register.validation.full_name");
+  const last = words[0];
+  const first = words.slice(1).join(" ");
+  return validateName(first) ?? validateName(last);
+}
+
 export interface RegisterFormValues {
+  full_name: string;
   first_name: string;
   last_name: string;
   phone: string;
@@ -53,17 +64,23 @@ export type FieldErrors = Partial<Record<keyof RegisterFormValues, string>>;
 export function validateRegisterForm(
   values: RegisterFormValues,
   fields: FieldsConfig,
+  nameMode: NameMode = "full",
 ): { errors: FieldErrors; body: Omit<RegisterBody, "device_token"> } {
   const errors: FieldErrors = {};
-  const body: Omit<RegisterBody, "device_token"> = {
-    first_name: values.first_name.trim(),
-    last_name: values.last_name.trim(),
-  };
+  const body: Omit<RegisterBody, "device_token"> = {};
 
-  const fn = validateName(values.first_name);
-  if (fn) errors.first_name = fn;
-  const ln = validateName(values.last_name);
-  if (ln) errors.last_name = ln;
+  if (nameMode === "full") {
+    body.full_name = values.full_name.trim().replace(/\s+/g, " ");
+    const err = validateFullName(values.full_name);
+    if (err) errors.full_name = err;
+  } else {
+    body.first_name = values.first_name.trim();
+    body.last_name = values.last_name.trim();
+    const fn = validateName(values.first_name);
+    if (fn) errors.first_name = fn;
+    const ln = validateName(values.last_name);
+    if (ln) errors.last_name = ln;
+  }
 
   if (fields.phone.enabled) {
     const raw = values.phone.trim();

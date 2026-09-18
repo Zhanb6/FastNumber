@@ -16,6 +16,7 @@ async def test_settings_get_defaults(admin):
         "start_number_locked": False,
         "max_number": 2000,
         "on_max_reached": "continue",
+        "name_mode": "full",
         "timezone": "Asia/Almaty",
         "fields": {
             "phone": {"enabled": False, "required": False},
@@ -82,6 +83,7 @@ async def test_public_config_reflects_settings(client, admin):
     assert r.json() == {
         "event_name": "Форум",
         "registration_open": True,
+        "name_mode": "full",
         "fields": {
             "phone": {"enabled": False, "required": False},
             "email": {"enabled": False, "required": False},

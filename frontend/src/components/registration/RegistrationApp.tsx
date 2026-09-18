@@ -94,6 +94,7 @@ export function RegistrationApp() {
           {screen.kind === "form" && (
             <RegisterForm
               fields={config?.fields ?? DEFAULT_FIELDS}
+              nameMode={config?.name_mode ?? "full"}
               deviceToken={token}
               onRegistered={handleRegistered}
               onClosed={() => setScreen({ kind: "closed" })}

@@ -183,3 +183,35 @@ async def test_registration_audit_and_ip(client, admin):
     assert entries[0]["ip"] == "203.0.113.5"
     assert entries[0]["admin_login"] is None
     assert entries[0]["metadata"]["number"] == 1000
+
+
+async def test_full_name_mode(client, admin):
+    r = await client.get("/api/config/public")
+    assert r.json()["name_mode"] == "full"
+
+    r = await client.post("/api/register", json={"full_name": "Нұрғалиева Айгерім Серікқызы"})
+    assert r.status_code == 201, r.text
+    assert r.json()["first_name"] == "Айгерім Серікқызы"
+    assert r.json()["last_name"] == "Нұрғалиева"
+
+    # one word is not enough, empty is required
+    for value in ("Иванов", "   ", ""):
+        r = await client.post("/api/register", json={"full_name": value})
+        assert r.status_code == 422
+        assert "full_name" in r.json()["error"]["details"]["fields"]
+
+    r = await client.post("/api/register", json={"full_name": "Иванов Иван1"})
+    assert r.status_code == 422
+
+    # split names are still accepted by the API in full mode (backwards compatible)
+    r = await client.post("/api/register", json={"first_name": "Иван", "last_name": "Иванов"})
+    assert r.status_code == 201
+
+    # switching to split mode makes the split fields the default validation path
+    r = await admin.put("/api/admin/settings", json={"name_mode": "split"})
+    assert r.status_code == 200 and r.json()["name_mode"] == "split"
+    r = await client.post("/api/register", json={})
+    assert r.status_code == 422
+    assert set(r.json()["error"]["details"]["fields"]) == {"first_name", "last_name"}
+    r = await admin.put("/api/admin/settings", json={"name_mode": "bogus"})
+    assert r.status_code == 422

@@ -3,20 +3,21 @@
 import { useId, useState, type FormEvent } from "react";
 import { isApiError, register } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
-import type { FieldsConfig, ParticipantPublic } from "@/lib/types";
+import type { FieldsConfig, NameMode, ParticipantPublic } from "@/lib/types";
 import { validateRegisterForm, type FieldErrors, type RegisterFormValues } from "@/lib/validation";
 import { t } from "@/i18n";
 
 interface Props {
   fields: FieldsConfig;
+  nameMode: NameMode;
   deviceToken: string | null;
   onRegistered: (p: ParticipantPublic) => void;
   onClosed: () => void;
 }
 
-const EMPTY: RegisterFormValues = { first_name: "", last_name: "", phone: "", email: "", company: "" };
+const EMPTY: RegisterFormValues = { full_name: "", first_name: "", last_name: "", phone: "", email: "", company: "" };
 
-export function RegisterForm({ fields, deviceToken, onRegistered, onClosed }: Props) {
+export function RegisterForm({ fields, nameMode, deviceToken, onRegistered, onClosed }: Props) {
   const [values, setValues] = useState<RegisterFormValues>(EMPTY);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function RegisterForm({ fields, deviceToken, onRegistered, onClosed }: Pr
     e.preventDefault();
     if (submitting) return;
     setFormError(null);
-    const { errors: clientErrors, body } = validateRegisterForm(values, fields);
+    const { errors: clientErrors, body } = validateRegisterForm(values, fields, nameMode);
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
       return;
@@ -70,24 +71,39 @@ export function RegisterForm({ fields, deviceToken, onRegistered, onClosed }: Pr
         <p className="mt-2 text-sm text-brand-muted">{t("register.form_subtitle")}</p>
       </div>
 
-      <Field
-        label={t("register.first_name")}
-        name="first_name"
-        value={values.first_name}
-        onChange={set("first_name")}
-        error={errors.first_name}
-        autoComplete="given-name"
-        required
-      />
-      <Field
-        label={t("register.last_name")}
-        name="last_name"
-        value={values.last_name}
-        onChange={set("last_name")}
-        error={errors.last_name}
-        autoComplete="family-name"
-        required
-      />
+      {nameMode === "full" ? (
+        <Field
+          label={t("register.full_name")}
+          name="full_name"
+          placeholder={t("register.full_name_placeholder")}
+          value={values.full_name}
+          onChange={set("full_name")}
+          error={errors.full_name}
+          autoComplete="name"
+          required
+        />
+      ) : (
+        <>
+          <Field
+            label={t("register.first_name")}
+            name="first_name"
+            value={values.first_name}
+            onChange={set("first_name")}
+            error={errors.first_name}
+            autoComplete="given-name"
+            required
+          />
+          <Field
+            label={t("register.last_name")}
+            name="last_name"
+            value={values.last_name}
+            onChange={set("last_name")}
+            error={errors.last_name}
+            autoComplete="family-name"
+            required
+          />
+        </>
+      )}
       {fields.phone.enabled && (
         <Field
           label={t("register.phone")}
@@ -179,7 +195,7 @@ function Field({ label, name, value, onChange, error, type = "text", inputMode, 
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        maxLength={name === "company" ? 120 : name === "email" ? 254 : 60}
+        maxLength={name === "company" || name === "full_name" ? 120 : name === "email" ? 254 : 60}
         className={`h-14 w-full rounded-xl border bg-white px-4 text-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent ${
           error ? "border-red-400" : "border-transparent"
         }`}

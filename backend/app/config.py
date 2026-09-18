@@ -26,6 +26,7 @@ class AppConfig(BaseSettings):
     start_number: int = 1000
     max_number: int = 2000
     on_max_reached: str = "continue"
+    name_mode: str = "full"
     allow_previous_winners: bool = False
     registration_open: bool = True
     animation_duration_ms: int = 8000
@@ -38,6 +39,14 @@ class AppConfig(BaseSettings):
     def _empty_bool_is_none(cls, v: object) -> object:
         if isinstance(v, str) and v.strip() == "":
             return None
+        return v
+
+    @field_validator("name_mode")
+    @classmethod
+    def _check_name_mode(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in ("split", "full"):
+            raise ValueError("NAME_MODE must be 'split' or 'full'")
         return v
 
     @field_validator("on_max_reached")

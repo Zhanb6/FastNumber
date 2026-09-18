@@ -9,9 +9,10 @@ interface Props extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   options: SelectOption[];
   error?: string;
+  hint?: string;
 }
 
-export function Select({ label, options, error, className = "", id, ...rest }: Props) {
+export function Select({ label, options, error, hint, className = "", id, ...rest }: Props) {
   const autoId = useId();
   const selectId = id ?? autoId;
   return (
@@ -36,6 +37,7 @@ export function Select({ label, options, error, className = "", id, ...rest }: P
         ))}
       </select>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {!error && hint && <p className="mt-1 text-sm text-slate-500">{hint}</p>}
     </div>
   );
 }

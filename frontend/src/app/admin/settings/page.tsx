@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { getSettings, isApiError, updateSettings } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
-import type { FieldsConfig, OnMaxReached, Settings, SettingsUpdate } from "@/lib/types";
+import type { FieldsConfig, NameMode, OnMaxReached, Settings, SettingsUpdate } from "@/lib/types";
 import { Button, Checkbox, Input, Select, useToast } from "@/components/ui";
 import { t } from "@/i18n";
 
@@ -12,6 +12,7 @@ interface FormState {
   registration_open: boolean;
   exclude_previous_winners: boolean;
   fields: FieldsConfig;
+  name_mode: NameMode;
   on_max_reached: OnMaxReached;
   max_number: string;
   start_number: string;
@@ -29,6 +30,7 @@ function toForm(s: Settings): FormState {
       email: { ...s.fields.email },
       company: { ...s.fields.company },
     },
+    name_mode: s.name_mode,
     on_max_reached: s.on_max_reached,
     max_number: String(s.max_number),
     start_number: String(s.start_number),
@@ -63,6 +65,7 @@ export default function SettingsPage() {
       registration_open: form.registration_open,
       allow_previous_winners: !form.exclude_previous_winners,
       fields: form.fields,
+      name_mode: form.name_mode,
       on_max_reached: form.on_max_reached,
       max_number: Number(form.max_number),
       animation: { duration_ms: Number(form.duration_ms) },
@@ -141,6 +144,18 @@ export default function SettingsPage() {
 
         <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="text-sm font-semibold text-slate-500 uppercase">{t("admin.settings.fields")}</h2>
+          <Select
+            className="mt-3"
+            label={t("admin.settings.name_mode")}
+            hint={t("admin.settings.name_mode_hint")}
+            value={form.name_mode}
+            onChange={(e) => setForm({ ...form, name_mode: e.target.value as NameMode })}
+            options={[
+              { value: "full", label: t("admin.settings.name_mode.full") },
+              { value: "split", label: t("admin.settings.name_mode.split") },
+            ]}
+            error={errors.name_mode}
+          />
           <div className="mt-3 grid gap-3">
             {(Object.keys(fieldLabels) as (keyof FieldsConfig)[]).map((name) => (
               <div key={name} className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg bg-slate-50 px-3 py-2">

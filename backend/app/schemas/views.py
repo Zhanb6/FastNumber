@@ -125,5 +125,6 @@ def public_config(s: EventSettings) -> dict[str, Any]:
     return {
         "event_name": s.event_name,
         "registration_open": s.registration_open,
+        "name_mode": s.name_mode,
         "fields": s.fields.model_dump(),
     }

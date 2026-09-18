@@ -129,6 +129,8 @@ export interface FieldsConfig {
   company: FieldConfig;
 }
 
+export type NameMode = "split" | "full";
+
 export interface Settings {
   event_name: string;
   event_slug: string;
@@ -138,6 +140,7 @@ export interface Settings {
   start_number_locked: boolean;
   max_number: number;
   on_max_reached: OnMaxReached;
+  name_mode: NameMode;
   timezone: string;
   fields: FieldsConfig;
   animation: { duration_ms: number; sound: boolean };
@@ -150,6 +153,7 @@ export interface SettingsUpdate {
   start_number?: number;
   max_number?: number;
   on_max_reached?: OnMaxReached;
+  name_mode?: NameMode;
   fields?: Partial<Record<keyof FieldsConfig, Partial<FieldConfig>>>;
   animation?: { duration_ms?: number; sound?: boolean };
 }
@@ -157,12 +161,15 @@ export interface SettingsUpdate {
 export interface PublicConfig {
   event_name: string;
   registration_open: boolean;
+  name_mode: NameMode;
   fields: FieldsConfig;
 }
 
 export interface RegisterBody {
-  first_name: string;
-  last_name: string;
+  /** One "Фамилия Имя Отчество" input (name_mode = "full"). */
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
   phone?: string;
   email?: string;
   company?: string;

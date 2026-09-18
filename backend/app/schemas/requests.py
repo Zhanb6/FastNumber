@@ -15,6 +15,7 @@ def _aware(v: datetime | None) -> datetime | None:
 
 class RegisterIn(BaseModel):
     model_config = ConfigDict(extra="ignore")
+    full_name: str | None = Field(default=None, max_length=300)
     first_name: str | None = Field(default=None, max_length=200)
     last_name: str | None = Field(default=None, max_length=200)
     phone: str | None = Field(default=None, max_length=40)

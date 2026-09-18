@@ -153,6 +153,7 @@ If something is ambiguous here, the spec wins; if the spec is silent, this file 
   "start_number_locked": false,
   "max_number": 2000,
   "on_max_reached": "continue",
+  "name_mode": "full",
   "timezone": "Asia/Almaty",
   "fields": {
     "phone":   { "enabled": false, "required": false },
@@ -164,7 +165,7 @@ If something is ambiguous here, the spec wins; if the spec is silent, this file 
 ```
 
 `start_number_locked` is read-only (true once any participant exists).
-`on_max_reached`: `"continue" | "close"`.
+`on_max_reached`: `"continue" | "close"`. `name_mode`: `"full"` (one ФИО input) | `"split"` (first + last name).
 
 ### AuditView
 
@@ -185,13 +186,17 @@ If something is ambiguous here, the spec wins; if the spec is silent, this file 
 ### `GET /api/config/public`
 
 ```json
-{ "event_name": "...", "registration_open": true,
+{ "event_name": "...", "registration_open": true, "name_mode": "full",
   "fields": { "phone": {"enabled":false,"required":false}, "email": {...}, "company": {...} } }
 ```
 
 ### `POST /api/register`
 
-Body: `{ "first_name", "last_name", "phone?", "email?", "company?", "device_token?" }`
+Body: `{ "full_name?", "first_name?", "last_name?", "phone?", "email?", "company?", "device_token?" }`
+
+- `name_mode = "full"`: send `full_name` ("Фамилия Имя [Отчество]", ≥ 2 words); backend stores the
+  first word as `last_name` and the rest as `first_name`. Errors are keyed `full_name`.
+  `first_name` + `last_name` are still accepted in either mode.
 
 - Names: trimmed, 1–60 chars, allowed: Cyrillic (incl. Kazakh letters), Latin, space, `-`, `'`.
 - `phone`: normalised to E.164 (`+7XXXXXXXXXX`); accepts `8XXXXXXXXXX`, `7XXXXXXXXXX`, `+7 (XXX) ...`.
